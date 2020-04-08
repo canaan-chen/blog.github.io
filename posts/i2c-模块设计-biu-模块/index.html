@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>I2C 模块设计| biu 模块 // My New Hugo Site</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    
+    
+    
+
+        <meta property="og:title" content="I2C 模块设计| biu 模块" />
+    <meta property="og:description" content="" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en" />
+    <meta property="og:url" content="http://example.org/posts/i2c-%E6%A8%A1%E5%9D%97%E8%AE%BE%E8%AE%A1-biu-%E6%A8%A1%E5%9D%97/" />
+    
+
+    <link rel="shortcut icon" href="/favicon.ico">
+
+    <link href="http://example.org/webfonts/ptserif/main.css" rel='stylesheet' type='text/css'>
+    <link href="http://example.org/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="http://example.org/css/style.css">
+    
+
+    <meta name="generator" content="Hugo 0.68.3" />
+</head>
+
+
+<body>
+<div id="container">
+    <header id="header">
+    <div id="header-outer" class="outer">
+        <div id="header-inner" class="inner">
+            <a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a>
+            <a id="logo" class="logo-text" href="http://example.org/">My New Hugo Site</a>
+            <nav id="main-nav">
+                
+            </nav>
+            <nav id="sub-nav">
+                <div id="search-form-wrap">
+                </div>
+            </nav>
+        </div>
+    </div>
+</header>
+
+    <section id="main" class="outer">
+        <article class="article article-type-post" itemscope itemprop="blogPost">
+    <div class="article-inner">
+        
+        <header class="article-header">
+            <h1 class="article-title" itemprop="name">I2C 模块设计| biu 模块</h1>
+        </header>
+        
+        <div class="article-meta">
+            <a href="/posts/i2c-%E6%A8%A1%E5%9D%97%E8%AE%BE%E8%AE%A1-biu-%E6%A8%A1%E5%9D%97/" class="article-date">
+                <time datetime='2020-03-17T20:36:24.000&#43;00:00' itemprop="datePublished">2020-03-17</time>
+            </a>
+            
+            
+            <div class="post-categories">
+                <div class="article-category">
+                    
+                    
+                    <a class="article-category-link" href="http://example.org//categories/%E4%B8%80%E4%B8%AAic%E5%B7%A5%E7%A8%8B%E5%B8%88%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%AE%E5%85%BB">一个IC工程师的自我修养</a>
+                    
+                    
+                    <span>&gt;</span>
+                    
+                    <a class="article-category-link" href="http://example.org//categories/i2c-%E8%AE%BE%E8%AE%A1">I2C 设计</a>
+                    
+                </div>
+            </div>
+            
+            
+        </div>
+        <div class="article-entry" itemprop="articleBody">
+            <p>下方结构图为I2C接口中的master模块示意图，这个章节主要用于讲述其中的biu模块。根据结构图可知，biu模块存在的地址在于APB interface 和APB register 之间，它的目的在于将复杂的AHB 接口信号转换为单周期的读写信号，这样方便对后面的reg进行操作。</p>
+<p><img src="https://image-1301586523.cos.ap-shanghai.myqcloud.com/1584102093634.png" alt=""></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">module</span> apb_i2c_biu #(
+	<span style="color:#66d9ef">parameter</span> ADDR_SLICE_LHS <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>, <span style="color:#75715e">// addres [4:0] 
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">parameter</span> APB_DATA_WIDTH <span style="color:#f92672">=</span> <span style="color:#ae81ff">32</span>
+)
+(
+<span style="color:#75715e">// signals connect to APB module 
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">input</span>							pclk,
+	<span style="color:#66d9ef">input</span>							presetn, <span style="color:#75715e">// reset
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">input</span> 							psel, <span style="color:#75715e">// select signal
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">input</span>	[ADDR_SLICE_LHS<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>] 	paddr, <span style="color:#75715e">// 5bit addres
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">input</span>							pwrite,
+	<span style="color:#66d9ef">input</span> 							penable,
+	<span style="color:#66d9ef">input</span>	[APB_DATA_WIDTH<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>]	pwdata,
+	<span style="color:#66d9ef">output</span>	<span style="color:#66d9ef">reg</span> [APB_DATA_WIDTH<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>] prdata,
+<span style="color:#75715e">//signals connect to register module
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">input</span>	[<span style="color:#ae81ff">15</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]					iprdata, <span style="color:#75715e">// ?
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">output</span>							wr_en,
+									rd_en,
+	<span style="color:#66d9ef">output</span>	[ADDR_SLICE_LHS<span style="color:#f92672">-</span><span style="color:#ae81ff">3</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]	reg_addr, <span style="color:#75715e">// ahb addres searching
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">output</span>	[<span style="color:#ae81ff">3</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]					byte_en,
+	<span style="color:#66d9ef">output</span>	<span style="color:#66d9ef">reg</span>	[<span style="color:#ae81ff">31</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]				ipwdata
+);
+</code></pre></div><h3 id="写操作">写操作</h3>
+<p>当AHB实现写操作时，要求片选信号（psel）为高，使能信号（penable）为高，写信号（pwrite）为高，当满足这三个条件时，biu信号输出写使能（wr_en）高，来驱动后面的reg。当ahb数据到来时可直接存到输出reg（ipwdata）中。</p>
+<ul>
+<li>
+<p>写操作代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">assign</span> wr_en <span style="color:#f92672">=</span> psel <span style="color:#f92672">&amp;</span> penable <span style="color:#f92672">&amp;</span> pwrite; <span style="color:#75715e">// 写信号的要求
+</span><span style="color:#75715e"></span>  
+<span style="color:#66d9ef">always</span> @(pwdata) <span style="color:#66d9ef">begin</span>
+  ipwdata <span style="color:#f92672">=</span> <span style="color:#ae81ff">32</span><span style="color:#ae81ff">&#39;b0</span>;
+  ipwdata [APB_DATA_WIDTH<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> pwdata[APB_DATA_WIDTH<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">0</span>]; <span style="color:#75715e">//apb总线上的数据每次发生变化，就将数据传输到输出reg中
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">end</span>
+  
+</code></pre></div></li>
+</ul>
+<h3 id="读操作">读操作</h3>
+<p>实现读操作时，要求在AHB读操作信号（pwrite 为低时）提前将reg中的数据传到输出数据缓存区prdata中。</p>
+<ul>
+<li>
+<p>关于读信号的判断</p>
+<p>biu 输出读信号（rd_en）的条件为：pwrite 为低，psel为高，penable 为高。但是为了保证在读操作实行时提前将数据准备好，rd_en 在penable为低便使能，具体代码如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-verilog" data-lang="verilog"><span style="color:#66d9ef">assign</span> rd_en <span style="color:#f92672">=</span> psel <span style="color:#f92672">&amp;</span> <span style="color:#f92672">!</span>penable <span style="color:#f92672">&amp;</span> <span style="color:#f92672">!</span>pwrite; <span style="color:#75715e">// 读信号要提前产生，因为要求把数据提前放到APB总线上
+</span><span style="color:#75715e"></span>  
+<span style="color:#75715e">// 数据传输过程
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">always</span> @ (<span style="color:#66d9ef">posedge</span> pclk <span style="color:#66d9ef">or</span> <span style="color:#66d9ef">negedge</span> presetn) <span style="color:#66d9ef">begin</span>
+  <span style="color:#66d9ef">if</span>(presetn <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>) <span style="color:#66d9ef">begin</span>
+      prdata <span style="color:#f92672">&lt;=</span> {APB_DATA_WIDTH{<span style="color:#ae81ff">1</span><span style="color:#ae81ff">&#39;b0</span>}}; <span style="color:#75715e">//apb 读寄存器中的数据清零
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">end</span>
+  <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">begin</span>
+      <span style="color:#66d9ef">if</span> (rd_en) <span style="color:#66d9ef">begin</span>
+          prdata <span style="color:#f92672">&lt;=</span> {<span style="color:#ae81ff">16</span><span style="color:#ae81ff">&#39;b0</span>,iprdata}; <span style="color:#75715e">// 将读入的数据保存到apb reg中
+</span><span style="color:#75715e"></span>      <span style="color:#66d9ef">end</span>
+  <span style="color:#66d9ef">end</span>
+<span style="color:#66d9ef">end</span>
+</code></pre></div></li>
+</ul>
+<h3 id="具体的代码链接如下">具体的代码链接如下：</h3>
+<p><a href="https://github.com/canaan-chen/I2C-IP-design/blob/master/apb_i2c_biu.v">Biu Ctrl Code</a></p>
+        </div>
+
+        
+        
+        <div class="article-toc" >
+            <h3>Contents</h3>
+            <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#写操作">写操作</a></li>
+        <li><a href="#读操作">读操作</a></li>
+        <li><a href="#具体的代码链接如下">具体的代码链接如下：</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+        </div>
+        
+        
+
+        
+
+
+        
+        <footer class="article-footer">
+            <ul class="article-tag-list">
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://example.org//tags/i2c-%E5%AD%A6%E4%B9%A0">I2C 学习
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://example.org//tags/ic-design">IC design
+                    </a>
+                </li>
+                
+                <li class="article-tag-list-item">
+                    <a class="article-tag-list-link" href="http://example.org//tags/ic-%E9%9D%A2%E8%AF%95">IC 面试
+                    </a>
+                </li>
+                
+            </ul>
+        </footer>
+        
+    </div>
+    <nav id="article-nav">
+    
+    <a href="/posts/hexo-next-%E4%B8%BB%E9%A2%98%E4%BC%98%E5%8C%96/" id="article-nav-newer" class="article-nav-link-wrap">
+        <div class="article-nav-title"><span>&lt;</span>&nbsp;
+            hexo next 主题优化 | 这里可能有你遇到所有问题的答案
+        </div>
+    </a>
+    
+    
+    <a href="/posts/i2c-%E5%8D%8F%E8%AE%AE%E5%9F%BA%E7%A1%80/" id="article-nav-older" class="article-nav-link-wrap">
+        <div class="article-nav-title">I2C 模块设计 | 协议基础&nbsp;<span>&gt;</span></div>
+    </a>
+    
+</nav>
+
+</article>
+
+        
+    </section>
+    <footer id="footer">
+    <div class="outer">
+        <div id="footer-info" class="inner">
+            &copy; 2020 My New Hugo Site
+            <br />
+            Powered by <a href="https://gohugo.io" target="_blank">Hugo</a> with theme <a href="https://github.com/carsonip/hugo-theme-minos" target="_blank">Minos</a>
+        </div>
+    </div>
+    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/styles/tomorrow-night.min.css" integrity="sha256-2wL88NKUqvJi/ExflDzkzUumjUM73mcK2gBvBBeLvTk=" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.9.0/highlight.min.js" integrity="sha256-KbfTjB0WZ8vvXngdpJGY3Yp3xKk+tttbqClO11anCIU=" crossorigin="anonymous"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    
+    <script>
+        document.getElementById('main-nav-toggle').addEventListener('click', function () {
+            var header = document.getElementById('header');
+            if (header.classList.contains('mobile-on')) {
+                header.classList.remove('mobile-on');
+            } else {
+                header.classList.add('mobile-on');
+            }
+        });
+    </script>
+</footer>
+
+</div>
+</body>
+</html>

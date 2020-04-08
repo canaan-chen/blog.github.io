@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>坚果云 on My New Hugo Site</title>
+    <link>http://example.org/tags/%E5%9D%9A%E6%9E%9C%E4%BA%91/</link>
+    <description>Recent content in 坚果云 on My New Hugo Site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 16 Mar 2020 12:19:33 +0000</lastBuildDate>
+    
+	<atom:link href="http://example.org/tags/%E5%9D%9A%E6%9E%9C%E4%BA%91/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>每日一技 | 用坚果云打造你的微信文章缓存库</title>
+      <link>http://example.org/posts/%E6%AF%8F%E6%97%A5%E4%B8%80%E6%8A%80-%E7%94%A8%E5%9D%9A%E6%9E%9C%E4%BA%91%E6%89%93%E9%80%A0%E4%BD%A0%E7%9A%84%E5%BE%AE%E4%BF%A1%E6%96%87%E7%AB%A0%E7%BC%93%E5%AD%98%E5%BA%93/</link>
+      <pubDate>Mon, 16 Mar 2020 12:19:33 +0000</pubDate>
+      
+      <guid>http://example.org/posts/%E6%AF%8F%E6%97%A5%E4%B8%80%E6%8A%80-%E7%94%A8%E5%9D%9A%E6%9E%9C%E4%BA%91%E6%89%93%E9%80%A0%E4%BD%A0%E7%9A%84%E5%BE%AE%E4%BF%A1%E6%96%87%E7%AB%A0%E7%BC%93%E5%AD%98%E5%BA%93/</guid>
+      <description>&lt;!-- raw HTML omitted --&gt;</description>
+    </item>
+    
+  </channel>
+</rss>
